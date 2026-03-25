@@ -3,14 +3,12 @@
 /**
  * AddressBookController
  *
- * REST Controller for the Address Book application.
- * Handles all incoming HTTP requests (GET, POST, PUT, DELETE)
- * and returns appropriate JSON responses wrapped in ResponseEntity.
+ * REST Controller updated in Section 2 UC1 to accept AddressBookDTO
+ * as the request body instead of a raw Map, and returns AddressBook
+ * model objects wrapped in ResponseEntity.
  *
- * UC2 - Section 1: Demonstrates HTTP method wiring before Service/DB layers
- * are introduced. Data is hard-coded/dummy at this stage.
- *
- * Base URL: /addressbook/contacts
+ * The Controller builds the Model directly here (no Service layer yet).
+ * Service layer will be introduced in UC2 of Section 2.
  *
  * CURL Test Commands:
  *   GET all    : curl -X GET  http://localhost:8080/addressbook/contacts
@@ -23,66 +21,53 @@
  * @version 1.0
  */
 
+import com.bridgelabz.addressbook.dto.AddressBookDTO;
+import com.bridgelabz.addressbook.model.AddressBook;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/addressbook/contacts")
 @CrossOrigin(origins = "*")
 public class AddressBookController {
 
-    // Returns a dummy list confirmation - connectivity check
+    // Returns a static list of contacts (Model created in Controller - temporary)
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getAllContacts() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "GET all contacts - REST layer working");
-        response.put("status", "success");
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    public ResponseEntity<List<AddressBook>> getAllContacts() {
+        List<AddressBook> contacts = new ArrayList<>();
+        contacts.add(new AddressBook(1L, "Demo User", "9000000000", "demo@example.com", "Delhi"));
+        return new ResponseEntity<>(contacts, HttpStatus.OK);
     }
 
-    // Returns dummy data for a single contact by ID - connectivity check
+    // Returns a contact by ID - model created inline for demonstration
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> getContactById(@PathVariable Long id) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "GET contact by ID - REST layer working");
-        response.put("id", id);
-        response.put("status", "success");
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    public ResponseEntity<AddressBook> getContactById(@PathVariable Long id) {
+        AddressBook contact = new AddressBook(id, "Demo User", "9000000000", "demo@example.com", "Delhi");
+        return new ResponseEntity<>(contact, HttpStatus.OK);
     }
 
-    // Accepts a contact JSON body and echoes it back - connectivity check
+    // Accepts DTO, builds Model, returns the created Model
     @PostMapping
-    public ResponseEntity<Map<String, Object>> addContact(@RequestBody Map<String, Object> body) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "POST contact received - REST layer working");
-        response.put("receivedData", body);
-        response.put("status", "success");
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    public ResponseEntity<AddressBook> addContact(@RequestBody AddressBookDTO dto) {
+        AddressBook contact = new AddressBook(1L, dto.getName(), dto.getPhone(), dto.getEmail(), dto.getCity());
+        return new ResponseEntity<>(contact, HttpStatus.CREATED);
     }
 
-    // Accepts updated contact data by ID and echoes it back - connectivity check
+    // Accepts DTO with updated fields, returns updated Model
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> updateContact(@PathVariable Long id,
-                                                              @RequestBody Map<String, Object> body) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "PUT contact updated - REST layer working");
-        response.put("id", id);
-        response.put("updatedData", body);
-        response.put("status", "success");
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    public ResponseEntity<AddressBook> updateContact(@PathVariable Long id,
+                                                      @RequestBody AddressBookDTO dto) {
+        AddressBook contact = new AddressBook(id, dto.getName(), dto.getPhone(), dto.getEmail(), dto.getCity());
+        return new ResponseEntity<>(contact, HttpStatus.OK);
     }
 
-    // Accepts an ID and confirms deletion intent - connectivity check
+    // Returns confirmation message for deletion
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> deleteContact(@PathVariable Long id) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "DELETE contact request received - REST layer working");
-        response.put("id", id);
-        response.put("status", "success");
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    public ResponseEntity<String> deleteContact(@PathVariable Long id) {
+        return new ResponseEntity<>("Contact with id " + id + " deleted successfully", HttpStatus.OK);
     }
 }
