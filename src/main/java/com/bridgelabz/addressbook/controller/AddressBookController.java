@@ -3,12 +3,13 @@
 /**
  * AddressBookController
  *
- * REST Controller updated in Section 2 UC1 to accept AddressBookDTO
- * as the request body instead of a raw Map, and returns AddressBook
- * model objects wrapped in ResponseEntity.
+ * Updated in Section 2 UC2 to delegate all business logic
+ * to the AddressBookService via the IAddressBookService interface.
+ * The Service is injected using Spring''s @Autowired annotation
+ * (Dependency Injection / IoC principle).
  *
- * The Controller builds the Model directly here (no Service layer yet).
- * Service layer will be introduced in UC2 of Section 2.
+ * The Controller is now thin: it only handles HTTP concerns and
+ * delegates data operations to the Service layer.
  *
  * CURL Test Commands:
  *   GET all    : curl -X GET  http://localhost:8080/addressbook/contacts
@@ -23,11 +24,12 @@
 
 import com.bridgelabz.addressbook.dto.AddressBookDTO;
 import com.bridgelabz.addressbook.model.AddressBook;
+import com.bridgelabz.addressbook.service.IAddressBookService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -35,39 +37,39 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class AddressBookController {
 
-    // Returns a static list of contacts (Model created in Controller - temporary)
+    // Spring injects the AddressBookService implementation at runtime
+    @Autowired
+    private IAddressBookService addressBookService;
+
+    // Delegates to service and returns all contacts as JSON
     @GetMapping
     public ResponseEntity<List<AddressBook>> getAllContacts() {
-        List<AddressBook> contacts = new ArrayList<>();
-        contacts.add(new AddressBook(1L, "Demo User", "9000000000", "demo@example.com", "Delhi"));
-        return new ResponseEntity<>(contacts, HttpStatus.OK);
+        return new ResponseEntity<>(addressBookService.getAllContacts(), HttpStatus.OK);
     }
 
-    // Returns a contact by ID - model created inline for demonstration
+    // Delegates to service and returns a single contact by ID
     @GetMapping("/{id}")
     public ResponseEntity<AddressBook> getContactById(@PathVariable Long id) {
-        AddressBook contact = new AddressBook(id, "Demo User", "9000000000", "demo@example.com", "Delhi");
-        return new ResponseEntity<>(contact, HttpStatus.OK);
+        return new ResponseEntity<>(addressBookService.getContactById(id), HttpStatus.OK);
     }
 
-    // Accepts DTO, builds Model, returns the created Model
+    // Delegates contact creation to service and returns the created contact
     @PostMapping
     public ResponseEntity<AddressBook> addContact(@RequestBody AddressBookDTO dto) {
-        AddressBook contact = new AddressBook(1L, dto.getName(), dto.getPhone(), dto.getEmail(), dto.getCity());
-        return new ResponseEntity<>(contact, HttpStatus.CREATED);
+        return new ResponseEntity<>(addressBookService.addContact(dto), HttpStatus.CREATED);
     }
 
-    // Accepts DTO with updated fields, returns updated Model
+    // Delegates update to service and returns the updated contact
     @PutMapping("/{id}")
     public ResponseEntity<AddressBook> updateContact(@PathVariable Long id,
                                                       @RequestBody AddressBookDTO dto) {
-        AddressBook contact = new AddressBook(id, dto.getName(), dto.getPhone(), dto.getEmail(), dto.getCity());
-        return new ResponseEntity<>(contact, HttpStatus.OK);
+        return new ResponseEntity<>(addressBookService.updateContact(id, dto), HttpStatus.OK);
     }
 
-    // Returns confirmation message for deletion
+    // Delegates deletion to service and returns a success message
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteContact(@PathVariable Long id) {
+        addressBookService.deleteContact(id);
         return new ResponseEntity<>("Contact with id " + id + " deleted successfully", HttpStatus.OK);
     }
 }
