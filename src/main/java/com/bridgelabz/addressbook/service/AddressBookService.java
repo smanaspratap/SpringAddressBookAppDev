@@ -3,13 +3,19 @@
 /**
  * AddressBookService
  *
- * Concrete implementation of IAddressBookService.
- * In UC2 of Section 2 the service layer is introduced but does NOT
- * yet maintain state - it builds and returns Model objects on the fly.
- * Persistent storage (in-memory List) will be added in UC3.
+ * Updated in Section 2 UC3 to store, update and delete contacts
+ * in an in-memory List<AddressBook>. This simulates a database
+ * until the actual JPA/MySQL persistence layer is connected.
  *
- * The @Service annotation registers this class as a Spring-managed bean
- * so it can be injected into the Controller via @Autowired.
+ * An AtomicLong counter is used to auto-generate unique IDs,
+ * mirroring what a database sequence would provide.
+ *
+ * Supports all CRUD operations:
+ *   - getAllContacts  - returns full in-memory list
+ *   - getContactById - finds by ID or throws RuntimeException
+ *   - addContact     - creates model from DTO, assigns ID, stores in list
+ *   - updateContact  - finds by ID, replaces fields, returns updated model
+ *   - deleteContact  - removes entry by ID from list
  *
  * @author Manas
  * @version 1.0
@@ -21,39 +27,61 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class AddressBookService implements IAddressBookService {
 
-    // Returns a single dummy contact - no storage yet
+    // In-memory list acting as a temporary data store
+    private final List<AddressBook> contactList = new ArrayList<>();
+
+    // Auto-incrementing ID generator starting at 1
+    private final AtomicLong idCounter = new AtomicLong(1);
+
+    // Returns a copy of all contacts currently in memory
     @Override
     public List<AddressBook> getAllContacts() {
-        List<AddressBook> contacts = new ArrayList<>();
-        contacts.add(new AddressBook(1L, "Service Layer Demo", "9000000001", "svc@example.com", "Bangalore"));
-        return contacts;
+        return new ArrayList<>(contactList);
     }
 
-    // Builds and returns a contact model for the requested ID
+    // Finds and returns a contact by ID; throws exception if not found
     @Override
     public AddressBook getContactById(Long id) {
-        return new AddressBook(id, "Service Layer Demo", "9000000001", "svc@example.com", "Bangalore");
+        return contactList.stream()
+                .filter(c -> c.getId() == id)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Contact not found with id: " + id));
     }
 
-    // Builds a model from DTO and returns it (not stored yet)
+    // Creates a new AddressBook entry from the DTO and stores it in-memory
     @Override
     public AddressBook addContact(AddressBookDTO dto) {
-        return new AddressBook(System.currentTimeMillis(), dto.getName(), dto.getPhone(), dto.getEmail(), dto.getCity());
+        AddressBook contact = new AddressBook(
+                idCounter.getAndIncrement(),
+                dto.getName(),
+                dto.getPhone(),
+                dto.getEmail(),
+                dto.getCity()
+        );
+        contactList.add(contact);
+        return contact;
     }
 
-    // Builds an updated model from DTO and returns it (not stored yet)
+    // Finds the contact by ID, updates its fields, and returns the updated object
     @Override
     public AddressBook updateContact(Long id, AddressBookDTO dto) {
-        return new AddressBook(id, dto.getName(), dto.getPhone(), dto.getEmail(), dto.getCity());
+        AddressBook contact = getContactById(id);
+        contact.setName(dto.getName());
+        contact.setPhone(dto.getPhone());
+        contact.setEmail(dto.getEmail());
+        contact.setCity(dto.getCity());
+        return contact;
     }
 
-    // No-op delete at this stage - storage arrives in UC3
+    // Removes the contact with the given ID from the in-memory list
     @Override
     public void deleteContact(Long id) {
-        // Storage-backed deletion implemented in UC3
+        AddressBook contact = getContactById(id);
+        contactList.remove(contact);
     }
 }
